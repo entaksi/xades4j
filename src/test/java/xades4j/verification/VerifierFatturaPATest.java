@@ -16,7 +16,7 @@ import java.util.ArrayList;
 /**
  * Created by luigi on 26/06/14.
  */
-public class VerifierFatturaPA extends VerifierTestBase
+public class VerifierFatturaPATest extends VerifierTestBase
 {
     XadesVerificationProfile verificationProfile;
 
