@@ -31,11 +31,26 @@ import java.util.List;
 public class VerifierFatturaPATest extends VerifierTestBase
 {
     XadesVerificationProfile verificationProfile;
+    XadesVerificationProfile verificationProfile2;
 
     @Before
     public void initialize()
     {
         verificationProfile = new XadesVerificationProfile(VerifierTestBase.validationProviderMySigs);
+
+        try
+        {
+            FileInputStream is = new FileInputStream("./src/test/cert/fatturapa/cacerts");
+            KeyStore trustAnchors = KeyStore.getInstance(KeyStore.getDefaultType());
+            String password = "changeit";
+            trustAnchors.load(is, password.toCharArray());
+            CertStore certs = CertStore.getInstance("Collection", new CollectionCertStoreParameters(new ArrayList()), "SUN");
+            CertificateValidationProvider certValidator = new PKIXCertificateValidationProvider(trustAnchors, false, certs);
+            verificationProfile2 = new XadesVerificationProfile(certValidator);
+        } catch (Exception e)
+        {
+            e.printStackTrace();
+        }
     }
 
     @Test
@@ -47,7 +62,7 @@ public class VerifierFatturaPATest extends VerifierTestBase
         // the signed file was downloaded from here
         // http://fatturapa.gov.it/export/fatturazione/sdi/fatturapa/v1.0/IT01234567890_X1111.xml
         Element signatureNode = getSigElement(getDocument("fatturapa/IT01234567890_X1111.xml"));
-        XAdESVerificationResult res = verificationProfile.newVerifier().verify(signatureNode, null);
+        XAdESVerificationResult res = verificationProfile2.newVerifier().verify(signatureNode, null);
         Assert.assertEquals(XAdESForm.BES, res.getSignatureForm());
     }
 
