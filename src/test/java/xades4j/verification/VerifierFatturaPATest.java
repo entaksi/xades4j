@@ -35,25 +35,14 @@ public class VerifierFatturaPATest extends VerifierTestBase
     @Before
     public void initialize()
     {
-        try
-        {
-            FileInputStream is = new FileInputStream("./src/test/cert/fatturapa/cacerts");
-            KeyStore trustAnchors = KeyStore.getInstance(KeyStore.getDefaultType());
-            String password = "changeit";
-            trustAnchors.load(is, password.toCharArray());
-            CertStore certs = CertStore.getInstance("Collection", new CollectionCertStoreParameters(new ArrayList()), "SUN");
-            CertificateValidationProvider certValidator = new PKIXCertificateValidationProvider(trustAnchors, false, certs);
-            verificationProfile = new XadesVerificationProfile(certValidator);
-        } catch (Exception e)
-        {
-            e.printStackTrace();
-        }
+        verificationProfile = new XadesVerificationProfile(VerifierTestBase.validationProviderMySigs);
     }
 
     @Test
     public void testVerifyBES() throws Exception
     {
-        System.out.println("verifyFatturaPA");
+        // verifica una FatturaPA firmata scaricata dal sito
+        System.out.println("verifyBESFatturaPA");
 
         // the signed file was downloaded from here
         // http://fatturapa.gov.it/export/fatturazione/sdi/fatturapa/v1.0/IT01234567890_X1111.xml
@@ -63,22 +52,9 @@ public class VerifierFatturaPATest extends VerifierTestBase
     }
 
     @Test
-    public void testSignAndVerifyBES() throws Exception
+    public void testVerifyFatturaPA() throws Exception
     {
-        System.out.println("signFatturaPA");
-
-        XadesSigner signer = getSigner();
-
-        Document docSource = getDocument("fatturapa/IT01234567890_11111.xml");
-
-        DataObjectDesc dataObjRef = new DataObjectReference("")
-                .withTransform(new EnvelopedSignatureTransform());
-        //.withTransform(XPath2FilterTransform.XPath2Filter.subtract("/descendant::ds:Signature"));
-        signer.sign(new SignedDataObjects(dataObjRef), docSource.getDocumentElement());
-
-        outputDocument(docSource, "IT01234567890_11111(signed).xml");
-
-
+        // verifica una FatturaPA firmata con Xades4j
         System.out.println("verifyFatturaPA");
 
         Element signatureNode = getSigElement(getDocument("out/IT01234567890_11111(signed).xml"));
@@ -90,77 +66,6 @@ public class VerifierFatturaPATest extends VerifierTestBase
         System.out.println(res.getQualifyingProperties().all().size());
 
         Assert.assertEquals(XAdESForm.BES, res.getSignatureForm());
-    }
-
-    private XadesSigner getSigner()
-    {
-        KeyStoreKeyingDataProvider.SigningCertSelector scs = new KeyStoreKeyingDataProvider.SigningCertSelector()
-        {
-            @Override
-            public X509Certificate selectCertificate(List<X509Certificate> x509Certificates)
-            {
-                return x509Certificates.get(1);
-            }
-        };
-
-        KeyStoreKeyingDataProvider.KeyStorePasswordProvider kspp = new KeyStoreKeyingDataProvider.KeyStorePasswordProvider()
-        {
-            @Override
-            public char[] getPassword()
-            {
-                return "19111985".toCharArray();
-            }
-        };
-
-        KeyStoreKeyingDataProvider.KeyEntryPasswordProvider kepp = new KeyStoreKeyingDataProvider.KeyEntryPasswordProvider()
-        {
-            @Override
-            public char[] getPassword(String s, X509Certificate x509Certificate)
-            {
-                return "19111985".toCharArray();
-            }
-        };
-
-        KeyingDataProvider keyingDataProvider = null;
-        try
-        {
-            keyingDataProvider = new PKCS11KeyStoreKeyingDataProvider(
-                    "/Users/luigi/Downloads/libbit4ipki.so",
-                    "SmartCard",
-                    scs,
-                    kspp, kepp,
-                    true);
-            XadesSigningProfile signingProfile = new XadesBesSigningProfile(keyingDataProvider)
-                    .withBasicSignatureOptionsProvider(new BasicSignatureOptionsProvider()
-                    {
-                        @Override
-                        public boolean includeSigningCertificate()
-                        {
-                            return true;     // aggiunge il SigningCertificate e il keyInfo
-                        }
-
-                        @Override
-                        public boolean includePublicKey()
-                        {
-                            return false;
-                        }
-
-                        @Override
-                        public boolean signSigningCertificate()
-                        {
-                            return true;   // firma il keyinfo
-                        }
-                    });
-            XadesSigner signer = signingProfile.newSigner();
-            return signer;
-        } catch (KeyStoreException e)
-        {
-            e.printStackTrace();
-        } catch (XadesProfileResolutionException e)
-        {
-            e.printStackTrace();
-        }
-        return null;
     }
 
 }
