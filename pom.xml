@@ -4,7 +4,7 @@
     <groupId>com.googlecode.xades4j</groupId>
     <artifactId>xades4j</artifactId>
     <packaging>jar</packaging>
-    <version>1.3.1-patched</version>
+    <version>1.3.1-entaksi-SNAPSHOT</version>
     <name>xades4j</name>
     <url>https://code.google.com/p/xades4j/</url>
 
@@ -157,5 +157,16 @@
             </build>
         </profile>
     </profiles>
+
+    <distributionManagement>
+        <snapshotRepository>
+            <id>entaksi-public</id>
+            <url>https://www.entaksi.eu/maven/entaksi-public-local</url>
+        </snapshotRepository>
+        <repository>
+            <id>entaksi-public</id>
+            <url>https://www.entaksi.eu/maven/entaksi-public-local</url>
+        </repository>
+    </distributionManagement>
     
 </project>

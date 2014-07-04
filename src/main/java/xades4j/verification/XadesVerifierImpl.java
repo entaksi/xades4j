@@ -196,8 +196,9 @@ class XadesVerifierImpl implements XadesVerifier
         // Verify the properties. Data structure verification is included.
         Collection<PropertyInfo> props = this.qualifyingPropertiesVerifier.verifyProperties(qualifPropsData, qPropsCtx);
 
-        // controllo sul vicolo 4.4.1 di ETSI TS 101 903
+        // Apply the constraints of section 4.4.1 of ETSI TS 101 903
         boolean propertyPresent = false;
+        // Check if incorporating the SigningCertificate signed property
         for (PropertyInfo propInfo : props)
         {
             if (propInfo.getProperty().getName().equals(SigningCertificateProperty.PROP_NAME))
@@ -209,10 +210,10 @@ class XadesVerifierImpl implements XadesVerifier
         boolean keyInfoSigned = false;
         if (!propertyPresent)
         {
-            // controlla se nel KeyInfo c'è il certificato
-            // se il certificato c'è, verifica se il key info è firmato
+            // Check if incorporating the signing certificate within the ds:KeyInfo element
+            // and signing the signing certificate
             if (signature.getKeyInfo() == null && !signature.getKeyInfo().containsX509Data())
-                throw new InvalidKeyInfoDataException("Certificato non indicato nè in SigningCertificateProperty, nè in KeyInfo");
+                throw new InvalidKeyInfoDataException("SigningCertificate signed property is non present and KeyInfo not contain the signing certificate.");
             String id = signature.getKeyInfo().getId();
 
             SignedInfo signedInfo = signature.getSignedInfo();
@@ -234,7 +235,7 @@ class XadesVerifierImpl implements XadesVerifier
                 }
             }
             if (!keyInfoSigned)
-                throw new InvalidKeyInfoDataException("Certificato non indicato nè in SigningCertificateProperty, nè in KeyInfo");
+                throw new InvalidKeyInfoDataException("SigningCertificate signed property is non present and KeyInfo not contain the signing certificate.");
         }
 
         XAdESVerificationResult res = new XAdESVerificationResult(
