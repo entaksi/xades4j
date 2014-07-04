@@ -16,18 +16,11 @@
  */
 package xades4j.verification;
 
+import xades4j.properties.*;
+
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
-import xades4j.properties.ArchiveTimeStampProperty;
-import xades4j.properties.CertificateValuesProperty;
-import xades4j.properties.CompleteCertificateRefsProperty;
-import xades4j.properties.CompleteRevocationRefsProperty;
-import xades4j.properties.RevocationValuesProperty;
-import xades4j.properties.SigAndRefsTimeStampProperty;
-import xades4j.properties.SignaturePolicyBase;
-import xades4j.properties.SignatureTimeStampProperty;
-import xades4j.properties.SigningCertificateProperty;
 
 /**
  *
@@ -125,7 +118,8 @@ class XAdESFormChecker
         @Override
         protected boolean checkProps(Set<String> availablePropsNames)
         {
-            return availablePropsNames.contains(SigningCertificateProperty.PROP_NAME);
+            return availablePropsNames.contains(SigningCertificateProperty.PROP_NAME) ||
+                    availablePropsNames.contains(SigningTimeProperty.PROP_NAME);
         }
 
         @Override

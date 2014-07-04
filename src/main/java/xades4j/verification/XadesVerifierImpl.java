@@ -17,14 +17,6 @@
 package xades4j.verification;
 
 import com.google.inject.Inject;
-import java.io.InputStream;
-import java.security.cert.X509CRL;
-import java.security.cert.X509Certificate;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Date;
-import java.util.List;
-import java.util.Set;
 import org.apache.xml.security.exceptions.XMLSecurityException;
 import org.apache.xml.security.signature.Reference;
 import org.apache.xml.security.signature.SignedInfo;
@@ -34,14 +26,11 @@ import org.apache.xml.security.utils.resolver.ResourceResolver;
 import org.apache.xml.security.utils.resolver.implementations.ResolverAnonymous;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
-import xades4j.properties.QualifyingProperty;
-import xades4j.properties.UnsignedSignatureProperty;
 import xades4j.XAdES4jException;
 import xades4j.XAdES4jXMLSigException;
-import xades4j.properties.data.PropertyDataObject;
-import xades4j.properties.UnsignedProperties;
 import xades4j.production.XadesSignatureFormatExtender;
-import xades4j.properties.SignatureTimeStampProperty;
+import xades4j.properties.*;
+import xades4j.properties.data.PropertyDataObject;
 import xades4j.properties.data.SignatureTimeStampData;
 import xades4j.providers.CertificateValidationProvider;
 import xades4j.providers.ValidationData;
@@ -53,6 +42,11 @@ import xades4j.verification.SignatureUtils.KeyInfoRes;
 import xades4j.verification.SignatureUtils.ReferencesRes;
 import xades4j.xml.unmarshalling.QualifyingPropertiesUnmarshaller;
 import xades4j.xml.unmarshalling.UnmarshalException;
+
+import java.io.InputStream;
+import java.security.cert.X509CRL;
+import java.security.cert.X509Certificate;
+import java.util.*;
 
 /**
  *
@@ -132,7 +126,7 @@ class XadesVerifierImpl implements XadesVerifier
         ReferencesRes referencesRes = SignatureUtils.processReferences(signature);
 
         /* Apply early verifiers */
-        
+
         RawSignatureVerifierContext rawCtx = new RawSignatureVerifierContext(signature);
         for (RawSignatureVerifier rawSignatureVerifier : this.rawSigVerifiers)
         {
@@ -202,6 +196,47 @@ class XadesVerifierImpl implements XadesVerifier
         // Verify the properties. Data structure verification is included.
         Collection<PropertyInfo> props = this.qualifyingPropertiesVerifier.verifyProperties(qualifPropsData, qPropsCtx);
 
+        // controllo sul vicolo 4.4.1 di ETSI TS 101 903
+        boolean propertyPresent = false;
+        for (PropertyInfo propInfo : props)
+        {
+            if (propInfo.getProperty().getName().equals(SigningCertificateProperty.PROP_NAME))
+            {
+                propertyPresent = true;
+                break;
+            }
+        }
+        boolean keyInfoSigned = false;
+        if (!propertyPresent)
+        {
+            // controlla se nel KeyInfo c'è il certificato
+            // se il certificato c'è, verifica se il key info è firmato
+            if (signature.getKeyInfo() == null && !signature.getKeyInfo().containsX509Data())
+                throw new InvalidKeyInfoDataException("Certificato non indicato nè in SigningCertificateProperty, nè in KeyInfo");
+            String id = signature.getKeyInfo().getId();
+
+            SignedInfo signedInfo = signature.getSignedInfo();
+
+            for (int i = 0; i < signedInfo.getLength(); i++)
+            {
+                Reference ref;
+                try
+                {
+                    ref = signedInfo.item(i);
+                } catch (XMLSecurityException ex)
+                {
+                    throw new XAdES4jXMLSigException(String.format("Cannot process the %dth reference", i), ex);
+                }
+                if (ref.getURI().equals("#" + id))
+                {
+                    keyInfoSigned = true;
+                    break;
+                }
+            }
+            if (!keyInfoSigned)
+                throw new InvalidKeyInfoDataException("Certificato non indicato nè in SigningCertificateProperty, nè in KeyInfo");
+        }
+
         XAdESVerificationResult res = new XAdESVerificationResult(
                 XAdESFormChecker.checkForm(props),
                 signature,
@@ -217,7 +252,7 @@ class XadesVerifierImpl implements XadesVerifier
 
         return res;
     }
-    
+
     /*************************************************************************************/
     /**/
 
