@@ -49,7 +49,6 @@ import java.security.cert.X509Certificate;
 import java.util.*;
 
 /**
- *
  * @author Luís
  */
 class XadesVerifierImpl implements XadesVerifier
@@ -60,6 +59,7 @@ class XadesVerifierImpl implements XadesVerifier
         org.apache.xml.security.Init.init();
         initFormExtension();
     }
+
     /**/
     private final CertificateValidationProvider certificateValidator;
     private final QualifyingPropertiesVerifier qualifyingPropertiesVerifier;
@@ -185,13 +185,13 @@ class XadesVerifierImpl implements XadesVerifier
         QualifyingPropertyVerificationContext qPropsCtx = new QualifyingPropertyVerificationContext(
                 signature,
                 new QualifyingPropertyVerificationContext.CertificationChainData(
-                certValidationRes.getCerts(),
-                certValidationRes.getCrls(),
-                keyInfoRes.issuerSerial),
+                        certValidationRes.getCerts(),
+                        certValidationRes.getCrls(),
+                        keyInfoRes.issuerSerial),
                 /**/
                 new QualifyingPropertyVerificationContext.SignedObjectsData(
-                referencesRes.dataObjsReferences,
-                signature));
+                        referencesRes.dataObjsReferences,
+                        signature));
 
         // Verify the properties. Data structure verification is included.
         Collection<PropertyInfo> props = this.qualifyingPropertiesVerifier.verifyProperties(qualifPropsData, qPropsCtx);
@@ -224,15 +224,16 @@ class XadesVerifierImpl implements XadesVerifier
                 try
                 {
                     ref = signedInfo.item(i);
+                    if (ref.getURI().equals("#" + id) && ref.verify())
+                    {
+                        keyInfoSigned = true;
+                        break;
+                    }
                 } catch (XMLSecurityException ex)
                 {
                     throw new XAdES4jXMLSigException(String.format("Cannot process the %dth reference", i), ex);
                 }
-                if (ref.getURI().equals("#" + id))
-                {
-                    keyInfoSigned = true;
-                    break;
-                }
+
             }
             if (!keyInfoSigned)
                 throw new InvalidKeyInfoDataException("SigningCertificate signed property is non present and KeyInfo not contain the signing certificate.");
@@ -254,9 +255,10 @@ class XadesVerifierImpl implements XadesVerifier
         return res;
     }
 
-    /*************************************************************************************/
+    /**
+     * *********************************************************************************
+     */
     /**/
-
     private Date getValidationDate(
             Collection<PropertyDataObject> qualifPropsData,
             XMLSignature signature) throws XAdES4jException
@@ -276,13 +278,13 @@ class XadesVerifierImpl implements XadesVerifier
         QualifyingPropertyVerificationContext ctx = new QualifyingPropertyVerificationContext(
                 signature,
                 new QualifyingPropertyVerificationContext.CertificationChainData(
-                new ArrayList<X509Certificate>(0),
-                new ArrayList<X509CRL>(0),
-                null),
+                        new ArrayList<X509Certificate>(0),
+                        new ArrayList<X509CRL>(0),
+                        null),
                 /**/
                 new QualifyingPropertyVerificationContext.SignedObjectsData(
-                new ArrayList<RawDataObjectDesc>(0),
-                signature));
+                        new ArrayList<RawDataObjectDesc>(0),
+                        signature));
         Collection<PropertyInfo> props = this.qualifyingPropertiesVerifier.verifyProperties(sigTsData, ctx);
         QualifyingProperty sigTs = props.iterator().next().getProperty();
 
@@ -295,7 +297,7 @@ class XadesVerifierImpl implements XadesVerifier
             X509Certificate validationCert) throws XAdES4jXMLSigException, InvalidSignatureException
     {
         List<ResourceResolver> resolvers = verificationOptions.getResolvers();
-        if(!CollectionUtils.nullOrEmpty(resolvers))
+        if (!CollectionUtils.nullOrEmpty(resolvers))
         {
             for (ResourceResolver resolver : resolvers)
             {
@@ -315,8 +317,7 @@ class XadesVerifierImpl implements XadesVerifier
             {
                 return;
             }
-        }
-        catch (XMLSignatureException ex)
+        } catch (XMLSignatureException ex)
         {
             throw new XAdES4jXMLSigException("Error verifying the signature", ex);
         }
@@ -343,20 +344,22 @@ class XadesVerifierImpl implements XadesVerifier
                     }
                 }
             }
-        }
-        catch (XMLSecurityException ex)
+        } catch (XMLSecurityException ex)
         {
             throw new XAdES4jXMLSigException("Error verifying the references", ex);
         }
     }
 
-    /*************************************************************************************/
+    /**
+     * *********************************************************************************
+     */
     private static interface FormExtensionPropsCollector
     {
 
         void addProps(Collection<UnsignedSignatureProperty> usp,
-                XAdESVerificationResult res);
+                      XAdESVerificationResult res);
     }
+
     private static FormExtensionPropsCollector[][] formsExtensionTransitions;
 
     private static void initFormExtension()
